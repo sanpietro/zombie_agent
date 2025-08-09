@@ -1,0 +1,285 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "OpenWeatherMap API for Weather Agent",
+    "description": "OpenWeatherMap API integration for zombie evacuation weather assessment",
+    "version": "2.5.0"
+  },
+  "servers": [
+    {
+      "url": "https://api.openweathermap.org/data/2.5",
+      "description": "OpenWeatherMap API Server"
+    }
+  ],
+  "paths": {
+    "/weather": {
+      "get": {
+        "summary": "Get current weather data",
+        "description": "Returns current weather data for specified coordinates",
+        "operationId": "getCurrentWeather",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "description": "Latitude coordinate",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "description": "Longitude coordinate",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "name": "units",
+            "in": "query",
+            "required": false,
+            "description": "Units of measurement (metric, imperial, kelvin)",
+            "schema": {
+              "type": "string",
+              "enum": ["metric", "imperial", "kelvin"],
+              "default": "metric"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with current weather data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "coord": {
+                      "type": "object",
+                      "properties": {
+                        "lon": {"type": "number"},
+                        "lat": {"type": "number"}
+                      }
+                    },
+                    "weather": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {"type": "integer"},
+                          "main": {"type": "string"},
+                          "description": {"type": "string"},
+                          "icon": {"type": "string"}
+                        }
+                      }
+                    },
+                    "main": {
+                      "type": "object",
+                      "properties": {
+                        "temp": {"type": "number"},
+                        "feels_like": {"type": "number"},
+                        "temp_min": {"type": "number"},
+                        "temp_max": {"type": "number"},
+                        "pressure": {"type": "integer"},
+                        "humidity": {"type": "integer"}
+                      }
+                    },
+                    "wind": {
+                      "type": "object",
+                      "properties": {
+                        "speed": {"type": "number"},
+                        "deg": {"type": "integer"}
+                      }
+                    },
+                    "visibility": {"type": "integer"},
+                    "clouds": {
+                      "type": "object",
+                      "properties": {
+                        "all": {"type": "integer"}
+                      }
+                    },
+                    "sys": {
+                      "type": "object",
+                      "properties": {
+                        "country": {"type": "string"},
+                        "sunrise": {"type": "integer"},
+                        "sunset": {"type": "integer"}
+                      }
+                    },
+                    "name": {"type": "string"}
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "404": {
+            "description": "Location not found"
+          },
+          "429": {
+            "description": "API rate limit exceeded"
+          }
+        }
+      }
+    },
+    "/forecast": {
+      "get": {
+        "summary": "Get 5-day weather forecast",
+        "description": "Returns 5-day weather forecast with 3-hour intervals",
+        "operationId": "getWeatherForecast",
+        "parameters": [
+          {
+            "name": "lat",
+            "in": "query",
+            "required": true,
+            "description": "Latitude coordinate",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "minimum": -90,
+              "maximum": 90
+            }
+          },
+          {
+            "name": "lon",
+            "in": "query",
+            "required": true,
+            "description": "Longitude coordinate",
+            "schema": {
+              "type": "number",
+              "format": "float",
+              "minimum": -180,
+              "maximum": 180
+            }
+          },
+          {
+            "name": "units",
+            "in": "query",
+            "required": false,
+            "description": "Units of measurement (metric, imperial, kelvin)",
+            "schema": {
+              "type": "string",
+              "enum": ["metric", "imperial", "kelvin"],
+              "default": "metric"
+            }
+          },
+          {
+            "name": "cnt",
+            "in": "query",
+            "required": false,
+            "description": "Number of forecast data points to return",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 40,
+              "default": 40
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response with forecast data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "list": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "dt": {"type": "integer"},
+                          "dt_txt": {"type": "string"},
+                          "main": {
+                            "type": "object",
+                            "properties": {
+                              "temp": {"type": "number"},
+                              "feels_like": {"type": "number"},
+                              "temp_min": {"type": "number"},
+                              "temp_max": {"type": "number"},
+                              "pressure": {"type": "integer"},
+                              "humidity": {"type": "integer"}
+                            }
+                          },
+                          "weather": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "id": {"type": "integer"},
+                                "main": {"type": "string"},
+                                "description": {"type": "string"},
+                                "icon": {"type": "string"}
+                              }
+                            }
+                          },
+                          "wind": {
+                            "type": "object",
+                            "properties": {
+                              "speed": {"type": "number"},
+                              "deg": {"type": "integer"}
+                            }
+                          },
+                          "pop": {"type": "number"}
+                        }
+                      }
+                    },
+                    "city": {
+                      "type": "object",
+                      "properties": {
+                        "name": {"type": "string"},
+                        "country": {"type": "string"},
+                        "coord": {
+                          "type": "object",
+                          "properties": {
+                            "lat": {"type": "number"},
+                            "lon": {"type": "number"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid API key"
+          },
+          "404": {
+            "description": "Location not found"
+          },
+          "429": {
+            "description": "API rate limit exceeded"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "query",
+        "name": "appid",
+        "description": "API key for OpenWeatherMap service"
+      }
+    }
+  },
+  "security": [
+    {
+      "ApiKeyAuth": []
+    }
+  ]
+}
