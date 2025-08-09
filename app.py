@@ -16,12 +16,13 @@ logger = logging.getLogger(__name__)
 def clean_response(response_text: str) -> str:
     """
     Clean up the response text by removing metadata tags and citations
+    while preserving formatting structure
     
     Args:
         response_text (str): Raw response from the agent
         
     Returns:
-        str: Cleaned response text
+        str: Cleaned response text with preserved formatting
     """
     if not response_text:
         return response_text
@@ -34,8 +35,10 @@ def clean_response(response_text: str) -> str:
     response_text = re.sub(r'\[source:\d+\]', '', response_text)
     response_text = re.sub(r'\[ref:\d+\]', '', response_text)
     
-    # Clean up extra whitespace
-    response_text = re.sub(r'\s+', ' ', response_text).strip()
+    # Clean up extra spaces but preserve line breaks and paragraph structure
+    response_text = re.sub(r'[ \t]+', ' ', response_text)  # Only collapse spaces/tabs, not newlines
+    response_text = re.sub(r'\n\s*\n\s*\n+', '\n\n', response_text)  # Reduce excessive line breaks to double
+    response_text = response_text.strip()
     
     return response_text
 
@@ -299,6 +302,94 @@ def main():
         layout="wide"
     )
     
+    # Add dark gray background styling with corner zombies
+    st.markdown("""
+    <style>
+    .stApp {
+        background-color: #404040;
+        color: white;
+    }
+    .stMarkdown {
+        color: white;
+    }
+    
+    /* Corner zombie decorations */
+    .stApp::before {
+        content: "🧟";
+        position: fixed;
+        top: 80px;
+        left: 20px;
+        font-size: 2rem;
+        z-index: 1000;
+    }
+    .stApp::after {
+        content: "🧟‍♀️";
+        position: fixed;
+        top: 80px;
+        right: 20px;
+        font-size: 2rem;
+        z-index: 1000;
+    }
+    
+    /* Chat message background colors */
+    [data-testid="chat-message-user"] {
+        background-color: #2d4a3d !important;
+        border-radius: 10px;
+        padding: 10px;
+        margin: 5px 0;
+    }
+    
+    [data-testid="chat-message-assistant"] {
+        background-color: #4a2d2d !important;
+        border-radius: 10px;
+        padding: 10px;
+        margin: 5px 0;
+    }
+    
+    /* Make chat avatars more visible */
+    .stChatMessage img {
+        width: 40px !important;
+        height: 40px !important;
+        font-size: 24px !important;
+    }
+    
+    [data-testid*="avatar"] {
+        font-size: 24px !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+    
+    /* Alternative selectors for chat messages */
+    .stChatMessage[data-testid*="user"] {
+        background-color: #2d4a3d !important;
+    }
+    
+    .stChatMessage[data-testid*="assistant"] {
+        background-color: #4a2d2d !important;
+    }
+    
+    /* Bottom corners */
+    .bottom-left-zombie::before {
+        content: "🧟‍♀️";
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        font-size: 2rem;
+        z-index: 1000;
+    }
+    .bottom-right-zombie::after {
+        content: "🧟";
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        font-size: 2rem;
+        z-index: 1000;
+    }
+    </style>
+    <div class="bottom-left-zombie"></div>
+    <div class="bottom-right-zombie"></div>
+    """, unsafe_allow_html=True)
+    
     st.title("🤖 Welcome to the Zombie Survival Service!")
     st.markdown("🧟 Your undead lifeline, 24/7.")
     
@@ -359,17 +450,25 @@ def main():
             except Exception as e:
                 st.error(f"Failed to create new conversation: {str(e)}")
     
-    # Display current thread ID
-    with col2:
-        if st.session_state.thread_id:
-            st.info(f"💬 Thread ID: {st.session_state.thread_id[:20]}...")
+    # Chat area
+    st.markdown("---")
     
-    # Display chat messages
+    # Display chat messages with zombie avatars
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
+        if message["role"] == "user":
+            with st.chat_message(message["role"], avatar="🧟"):
+                st.markdown(message["content"])
+        else:
+            # Use zombie icon image for The Zombinator
+            with st.chat_message(message["role"], avatar="./zombie_icon.png"):
+                st.markdown(message["content"])
+
+    # Add some space before the input section
+    if st.session_state.messages:
+        st.markdown("")  # Add spacing if there are messages
     
-    # Chat input
+    # Chat input section
+    st.markdown("### 💬 Chat with The Zombinator")
     if prompt := st.chat_input("What would you like to ask The Zombinator?"):
         # Create thread if it doesn't exist
         if st.session_state.thread_id is None:
@@ -384,75 +483,53 @@ def main():
         # Add user message to chat history
         st.session_state.messages.append({"role": "user", "content": prompt})
         
-        # Display user message
-        with st.chat_message("user"):
+        # Display user message with original zombie emoji
+        with st.chat_message("user", avatar="🧟"):
             st.markdown(prompt)
         
-        # Get agent response
-        with st.chat_message("assistant"):
+        # Get agent response with zombie icon image
+        with st.chat_message("assistant", avatar="./zombie_icon.png"):
             with st.spinner("The Zombinator is thinking..."):
                 response = st.session_state.agent_client.send_message(
                     thread_id=st.session_state.thread_id,
                     message=prompt
                 )
+            
+            if response["success"]:
+                st.markdown(response["response"])
+                # Add assistant message to chat history
+                st.session_state.messages.append({
+                    "role": "assistant", 
+                    "content": response["response"]
+                })
+            else:
+                error_msg = response["error"]
                 
-                if response["success"]:
-                    st.markdown(response["response"])
-                    # Add assistant message to chat history
+                # Check if it's a rate limit error for user-friendly message
+                if response.get("user_message"):
+                    # Use the user-friendly message from rate limiting
+                    st.warning(f"🕐 {response['user_message']}")
+                    st.info("💡 Tip: Try refreshing the page or starting a new conversation if the issue persists.")
+                    # Add user-friendly message to chat history
                     st.session_state.messages.append({
                         "role": "assistant", 
-                        "content": response["response"]
+                        "content": f"🕐 {response['user_message']}"
+                    })
+                elif "rate_limit_exceeded" in error_msg or "Rate limit is exceeded" in error_msg:
+                    friendly_msg = "🕐 The Zombinator is experiencing high demand. Please wait a moment and try again."
+                    st.warning(friendly_msg)
+                    st.info("💡 Tip: Azure AI services have rate limits to ensure fair usage. Your request will be processed shortly.")
+                    # Add user-friendly message to chat history
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": friendly_msg
                     })
                 else:
-                    error_msg = response["error"]
-                    
-                    # Check if it's a rate limit error for user-friendly message
-                    if response.get("user_message"):
-                        # Use the user-friendly message from rate limiting
-                        st.warning(f"🕐 {response['user_message']}")
-                        st.info("💡 Tip: Try refreshing the page or starting a new conversation if the issue persists.")
-                        # Add user-friendly message to chat history
-                        st.session_state.messages.append({
-                            "role": "assistant", 
-                            "content": f"🕐 {response['user_message']}"
-                        })
-                    elif "rate_limit_exceeded" in error_msg or "Rate limit is exceeded" in error_msg:
-                        friendly_msg = "🕐 The Zombinator is experiencing high demand. Please wait a moment and try again."
-                        st.warning(friendly_msg)
-                        st.info("💡 Tip: Azure AI services have rate limits to ensure fair usage. Your request will be processed shortly.")
-                        # Add user-friendly message to chat history
-                        st.session_state.messages.append({
-                            "role": "assistant", 
-                            "content": friendly_msg
-                        })
-                    else:
-                        st.error(f"❌ Error: {error_msg}")
-                        # Add error to chat history
-                        st.session_state.messages.append({
-                            "role": "assistant", 
-                            "content": f"❌ Error: {error_msg}"
-                        })
-    
-    # Sidebar with configuration info
-    with st.sidebar:
-        st.header("🔧 Configuration")
-        st.write("**AI Foundry Endpoint:**")
-        st.code(config["endpoint"][:50] + "..." if len(config["endpoint"]) > 50 else config["endpoint"])
-        st.write("**Agent ID:**")
-        st.code(config["agent_id"])
-        
-        st.header("📊 Session Info")
-        st.write(f"**Messages:** {len(st.session_state.messages)}")
-        st.write(f"**Thread Active:** {'✅' if st.session_state.thread_id else '❌'}")
-        
-        st.header("💡 Tips")
-        st.markdown("""
-        - Click "New Conversation" to start fresh
-        - Your conversation history is maintained per session
-        - The agent uses Azure AI Foundry's capabilities
-        - External APIs (Maps, Weather) are handled by the agent
-        - Responses are processed with retry logic for reliability
-        """)
-
+                    st.error(f"❌ Error: {error_msg}")
+                    # Add error to chat history
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": f"❌ Error: {error_msg}"
+                    })
 if __name__ == "__main__":
     main()
