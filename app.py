@@ -52,10 +52,80 @@ class AzureAIFoundryAgent:
         """
         self.endpoint = endpoint
         self.agent_id = agent_id
-        self.credential = DefaultAzureCredential()
+        self.credential = self._get_credential()
         self.project_client = None
         self.agent = None
         self._initialize_client()
+    
+    def _get_credential(self):
+        """Get Azure credential with support for both local and cloud deployment"""
+        try:
+            # Check if we're in Streamlit Cloud (or other cloud environment)
+            # Look for service principal credentials first (for cloud deployment)
+            client_id = os.getenv('AZURE_CLIENT_ID') or st.secrets.get('AZURE_CLIENT_ID')
+            client_secret = os.getenv('AZURE_CLIENT_SECRET') or st.secrets.get('AZURE_CLIENT_SECRET')
+            tenant_id = os.getenv('AZURE_TENANT_ID') or st.secrets.get('AZURE_TENANT_ID')
+            
+            if client_id and client_secret and tenant_id:
+                logger.info("Using service principal authentication for cloud deployment")
+                from azure.identity import ClientSecretCredential
+                credential = ClientSecretCredential(
+                    tenant_id=tenant_id,
+                    client_id=client_id,
+                    client_secret=client_secret
+                )
+                # Test the credential
+                try:
+                    credential.get_token("https://management.azure.com/.default")
+                    logger.info("Service principal authentication successful")
+                    return credential
+                except Exception as e:
+                    logger.error(f"Service principal authentication failed: {e}")
+                    raise
+            
+            # If no service principal, try DefaultAzureCredential for local development
+            logger.info("Trying DefaultAzureCredential for local development")
+            from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
+            credential = DefaultAzureCredential()
+            
+            # Test the credential by attempting to get a token
+            try:
+                credential.get_token("https://management.azure.com/.default")
+                logger.info("DefaultAzureCredential authentication successful")
+                return credential
+            except Exception as e:
+                logger.warning(f"DefaultAzureCredential failed: {e}")
+                
+                # Fallback to Interactive Browser Authentication (local only)
+                if not self._is_cloud_environment():
+                    logger.info("Trying InteractiveBrowserCredential...")
+                    try:
+                        interactive_credential = InteractiveBrowserCredential()
+                        interactive_credential.get_token("https://management.azure.com/.default")
+                        logger.info("InteractiveBrowserCredential authentication successful")
+                        return interactive_credential
+                    except Exception as ie:
+                        logger.error(f"InteractiveBrowserCredential also failed: {ie}")
+                else:
+                    logger.error("Running in cloud environment but no service principal configured")
+                    
+                raise e  # Raise the original DefaultAzureCredential error
+                
+        except Exception as e:
+            logger.error(f"Authentication setup failed: {e}")
+            raise Exception(f"Azure authentication failed. For cloud deployment, configure AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, and AZURE_TENANT_ID. For local development, run 'az login'. Error: {e}")
+    
+    def _is_cloud_environment(self):
+        """Check if running in a cloud environment"""
+        # Common indicators of cloud environments
+        cloud_indicators = [
+            os.getenv('STREAMLIT_SHARING'),  # Streamlit Cloud
+            os.getenv('HEROKU_APP_NAME'),    # Heroku
+            os.getenv('VERCEL'),             # Vercel
+            os.getenv('NETLIFY'),            # Netlify
+            os.getenv('AWS_LAMBDA_FUNCTION_NAME'),  # AWS Lambda
+        ]
+        return any(cloud_indicators) or 'streamlit.io' in os.getenv('HOSTNAME', '')
     
     def _initialize_client(self):
         """Initialize the AI project client and get the agent"""
@@ -68,7 +138,7 @@ class AzureAIFoundryAgent:
             logger.info(f"Successfully initialized agent: {self.agent_id}")
         except ClientAuthenticationError as e:
             logger.error(f"Authentication failed: {e}")
-            raise
+            raise Exception(f"Azure authentication failed. Please run 'az login' in your terminal or check your Azure credentials. Error: {e}")
         except HttpResponseError as e:
             logger.error(f"HTTP error during initialization: {e}")
             raise
@@ -248,7 +318,31 @@ def main():
                 )
                 st.success("✅ Agent initialized successfully!")
         except Exception as e:
-            st.error(f"❌ Failed to initialize agent: {str(e)}")
+            error_msg = str(e)
+            st.error(f"❌ Failed to initialize agent: {error_msg}")
+            
+            # Provide specific guidance based on the error
+            if "authentication" in error_msg.lower() or "defaultazurecredential" in error_msg.lower():
+                st.info("🔧 **Authentication Setup Required:**")
+                st.markdown("""
+                **To fix this issue, run one of these commands in your terminal:**
+                
+                ```bash
+                # Option 1: Azure CLI (Recommended)
+                az login
+                
+                # Option 2: Azure Developer CLI
+                azd auth login
+                ```
+                
+                **Or install the required packages:**
+                ```bash
+                pip install azure-identity-broker
+                ```
+                
+                **Then restart your Streamlit app.**
+                """)
+            
             st.info("Please check your Azure credentials and configuration.")
             st.stop()
     
@@ -342,7 +436,7 @@ def main():
     # Sidebar with configuration info
     with st.sidebar:
         st.header("🔧 Configuration")
-        st.write("**Endpoint:**")
+        st.write("**AI Foundry Endpoint:**")
         st.code(config["endpoint"][:50] + "..." if len(config["endpoint"]) > 50 else config["endpoint"])
         st.write("**Agent ID:**")
         st.code(config["agent_id"])
@@ -356,6 +450,7 @@ def main():
         - Click "New Conversation" to start fresh
         - Your conversation history is maintained per session
         - The agent uses Azure AI Foundry's capabilities
+        - External APIs (Maps, Weather) are handled by the agent
         - Responses are processed with retry logic for reliability
         """)
 
