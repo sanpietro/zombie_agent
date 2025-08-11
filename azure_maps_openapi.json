@@ -1,0 +1,257 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Azure Maps API",
+    "description": "Azure Maps geocoding and routing for zombie survival navigation",
+    "version": "1.0"
+  },
+  "servers": [
+    {
+      "url": "https://atlas.microsoft.com"
+    }
+  ],
+  "security": [
+    {
+      "subscription-key": []
+    }
+  ],
+  "paths": {
+    "/search/address/json": {
+      "get": {
+        "operationId": "geocode_address",
+        "summary": "Geocode an address to coordinates",
+        "parameters": [
+          {
+            "name": "api-version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1.0"],
+              "default": "1.0"
+            },
+            "description": "Version number of Azure Maps API"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The address to search for (e.g., '1600 Amphitheatre Parkway, Mountain View, CA')"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 10
+            },
+            "description": "Maximum number of responses that will be returned"
+          },
+          {
+            "name": "countrySet",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma separated list of country codes (e.g., 'US,CA')"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful geocoding response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "object",
+                      "properties": {
+                        "query": { "type": "string" },
+                        "queryType": { "type": "string" },
+                        "numResults": { "type": "integer" }
+                      }
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "type": { "type": "string" },
+                          "id": { "type": "string" },
+                          "score": { "type": "number" },
+                          "address": {
+                            "type": "object",
+                            "properties": {
+                              "streetNumber": { "type": "string" },
+                              "streetName": { "type": "string" },
+                              "municipality": { "type": "string" },
+                              "countrySubdivision": { "type": "string" },
+                              "countryCode": { "type": "string" },
+                              "country": { "type": "string" },
+                              "postalCode": { "type": "string" },
+                              "freeformAddress": { "type": "string" }
+                            }
+                          },
+                          "position": {
+                            "type": "object",
+                            "properties": {
+                              "lat": { "type": "number" },
+                              "lon": { "type": "number" }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/route/directions/json": {
+      "get": {
+        "operationId": "calculate_route_directions",
+        "summary": "Calculate route between coordinates",
+        "parameters": [
+          {
+            "name": "api-version",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": ["1.0"],
+              "default": "1.0"
+            },
+            "description": "Version number of Azure Maps API"
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The coordinates through which the route is calculated, delimited by a colon (e.g., '52.50931,13.42936:52.50274,13.43872'). Format: 'originLat,originLon:destinationLat,destinationLon'"
+          },
+          {
+            "name": "routeType",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["fastest", "shortest", "eco", "thrilling"],
+              "default": "fastest"
+            },
+            "description": "The type of route requested"
+          },
+          {
+            "name": "travelMode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["car", "truck", "taxi", "bus", "van", "motorcycle", "bicycle", "pedestrian"],
+              "default": "car"
+            },
+            "description": "The mode of travel for the requested route"
+          },
+          {
+            "name": "avoid",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["tollRoads", "motorways", "ferries", "unpavedRoads", "carpools", "alreadyUsedRoads", "borderCrossings"]
+            },
+            "description": "Specifies something that the route calculation should try to avoid"
+          },
+          {
+            "name": "traffic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": true
+            },
+            "description": "Consider all available traffic information during routing"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful route calculation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "formatVersion": { "type": "string" },
+                    "routes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "summary": {
+                            "type": "object",
+                            "properties": {
+                              "lengthInMeters": { "type": "integer" },
+                              "travelTimeInSeconds": { "type": "integer" },
+                              "trafficDelayInSeconds": { "type": "integer" },
+                              "departureTime": { "type": "string", "format": "date-time" },
+                              "arrivalTime": { "type": "string", "format": "date-time" }
+                            }
+                          },
+                          "legs": {
+                            "type": "array",
+                            "items": {
+                              "type": "object",
+                              "properties": {
+                                "summary": {
+                                  "type": "object",
+                                  "properties": {
+                                    "lengthInMeters": { "type": "integer" },
+                                    "travelTimeInSeconds": { "type": "integer" }
+                                  }
+                                },
+                                "points": {
+                                  "type": "array",
+                                  "items": {
+                                    "type": "object",
+                                    "properties": {
+                                      "latitude": { "type": "number" },
+                                      "longitude": { "type": "number" }
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "subscription-key": {
+        "type": "apiKey",
+        "name": "subscription-key",
+        "in": "query"
+      }
+    }
+  }
+}
