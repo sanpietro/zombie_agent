@@ -176,6 +176,9 @@ class AzureAIFoundryAgent:
         Returns:
             Dict: Response containing success status and message/error
         """
+        # Add a small delay between requests to prevent rapid-fire API calls
+        time.sleep(0.5)  # Half-second delay before each request
+        
         for attempt in range(max_retries):
             try:
                 # Create user message
@@ -293,6 +296,8 @@ def initialize_session_state():
         st.session_state.agent_client = None
     if "processing" not in st.session_state:
         st.session_state.processing = False
+    if "last_request_time" not in st.session_state:
+        st.session_state.last_request_time = 0
 
 def main():
     """Main Streamlit application"""
@@ -393,6 +398,9 @@ def main():
     st.title("🤖 Welcome to the Zombie Survival Service!")
     st.markdown("🧟 Your undead lifeline, 24/7.")
     
+    # Add rate limiting info
+    st.info("ℹ️ **Rate Limiting Protection**: This app includes automatic rate limiting to prevent API errors. Please wait 2 seconds between messages.")
+    
     # Initialize session state
     initialize_session_state()
     
@@ -470,6 +478,18 @@ def main():
     # Chat input section
     st.markdown("### 💬 Chat with The Zombinator")
     if prompt := st.chat_input("What would you like to ask The Zombinator?"):
+        # Rate limiting check - prevent requests less than 2 seconds apart
+        current_time = time.time()
+        time_since_last = current_time - st.session_state.last_request_time
+        min_interval = 2.0  # Minimum 2 seconds between requests
+        
+        if time_since_last < min_interval:
+            remaining_wait = min_interval - time_since_last
+            st.warning(f"🕐 Please wait {remaining_wait:.1f} more seconds before sending another message to avoid rate limiting.")
+            st.stop()
+        
+        st.session_state.last_request_time = current_time
+        
         # Create thread if it doesn't exist
         if st.session_state.thread_id is None:
             try:
