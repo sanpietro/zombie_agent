@@ -15,7 +15,7 @@ A zombie-themed survival route planning agent that integrates with Azure Maps AP
 ### Core Application Files
 - **`app.py`** - Main Streamlit application with zombie-themed UI
 - **`azure_maps_activity.py`** - Cleaned Azure Maps integration (85 lines, down from 336)
-- **`azure_maps_openapi_fixed.json`** - Final OpenAPI 3.0 specification with proper defaults
+- **`azure_maps_openapi.json`** - Final OpenAPI 3.0 specification with proper defaults
 
 ### Configuration & Deployment
 - **`DEPLOYMENT_UPDATED.md`** - Complete Azure AI Foundry deployment guide
@@ -30,7 +30,7 @@ A zombie-themed survival route planning agent that integrates with Azure Maps AP
 
 ## 🔑 Azure Integration Details
 
-### OpenAPI 3.0 Specification (`azure_maps_openapi_fixed.json`)
+### OpenAPI 3.0 Specification (`azure_maps_openapi.json`)
 - **Geocoding Endpoint**: `/search/address/json` with `geocode_address` operationId
 - **Routing Endpoint**: `/route/directions/json` with `calculate_route_directions` operationId
 - **Authentication**: `subscription-key` security scheme for custom keys
