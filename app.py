@@ -417,8 +417,13 @@ def main():
     <div class="bottom-right-zombie"></div>
     """, unsafe_allow_html=True)
     
-    st.title("🤖 Welcome to the Zombie Survival Service!")
-    st.markdown("🧟 Your undead lifeline, 24/7.")
+    # Branded header with zombie icon image instead of emoji
+    logo_col, title_col = st.columns([0.12, 0.88])
+    with logo_col:
+        st.image("zombie_icon.png", caption=None, use_column_width=True)
+    with title_col:
+        st.markdown("# Welcome to the Zombie Survival Service!")
+        st.markdown("**🧟 Your undead lifeline, 24/7.**")
     
     # Initialize session state
     initialize_session_state()
