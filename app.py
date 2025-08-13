@@ -418,9 +418,10 @@ def main():
     """, unsafe_allow_html=True)
     
     # Branded header with zombie icon image instead of emoji
-    logo_col, title_col = st.columns([0.12, 0.88])
+    logo_col, title_col = st.columns([0.15, 0.85])
     with logo_col:
-        st.image("zombie_icon.png", caption=None, use_column_width=True)
+        # Removed deprecated use_column_width to avoid Streamlit warning box pushing layout
+        st.image("zombie_icon.png", width=120)
     with title_col:
         st.markdown("# Welcome to the Zombie Survival Service!")
         st.markdown("**🧟 Your undead lifeline, 24/7.**")
