@@ -401,6 +401,17 @@ def main():
         font-size: 2rem;
         z-index: 1000;
     }
+    /* Chat header styling */
+    .chat-header {
+        font-size: 2.2rem !important; /* Increase size */
+        font-weight: 800 !important;  /* Make bold */
+        margin-top: 1.25rem !important;
+        margin-bottom: 0.75rem !important;
+        background: linear-gradient(90deg,#ff5555,#ffaa00);
+        -webkit-background-clip: text;
+        color: #ffdddd;
+        text-shadow: 0 0 6px rgba(255,120,120,0.35);
+    }
     </style>
     <div class="bottom-left-zombie"></div>
     <div class="bottom-right-zombie"></div>
@@ -408,9 +419,6 @@ def main():
     
     st.title("🤖 Welcome to the Zombie Survival Service!")
     st.markdown("🧟 Your undead lifeline, 24/7.")
-    
-    # Add rate limiting info
-    st.info("ℹ️ **Rate Limiting Protection**: This app includes automatic rate limiting to prevent API errors. Please wait 2 seconds between messages.")
     
     # Initialize session state
     initialize_session_state()
@@ -487,7 +495,8 @@ def main():
         st.markdown("")  # Add spacing if there are messages
     
     # Chat input section
-    st.markdown("### 💬 Chat with The Zombinator")
+    # Custom styled chat header (HTML to control font size & weight)
+    st.markdown('<h2 class="chat-header">💬 Chat with The Zombinator</h2>', unsafe_allow_html=True)
     if prompt := st.chat_input("What would you like to ask The Zombinator?"):
         # Rate limiting check - prevent requests less than 2 seconds apart
         current_time = time.time()
