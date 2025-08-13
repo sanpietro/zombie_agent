@@ -313,7 +313,7 @@ def initialize_session_state():
 def main():
     """Main Streamlit application"""
     st.set_page_config(
-        page_title="Azure AI Foundry Agent Chat",
+        page_title="Zombie Survival Service | The Zombinator",
         page_icon="🤖",
         layout="wide"
     )
