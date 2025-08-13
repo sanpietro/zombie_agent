@@ -13,6 +13,17 @@ from azure.core.exceptions import AzureError, ClientAuthenticationError, HttpRes
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def _safe_secret(key: str):
+    """Safely get a secret from st.secrets without requiring a secrets file.
+
+    Returns None if secrets are unavailable or key is missing.
+    """
+    try:
+        # st.secrets may exist but raise if no secrets.toml; guard access
+        return getattr(st, "secrets", {}).get(key)  # SecretDict implements .get
+    except Exception:
+        return None
+
 def clean_response(response_text: str) -> str:
     """
     Clean up the response text by removing metadata tags and citations
@@ -65,9 +76,9 @@ class AzureAIFoundryAgent:
         try:
             # Check if we're in Streamlit Cloud (or other cloud environment)
             # Look for service principal credentials first (for cloud deployment)
-            client_id = os.getenv('AZURE_CLIENT_ID') or st.secrets.get('AZURE_CLIENT_ID')
-            client_secret = os.getenv('AZURE_CLIENT_SECRET') or st.secrets.get('AZURE_CLIENT_SECRET')
-            tenant_id = os.getenv('AZURE_TENANT_ID') or st.secrets.get('AZURE_TENANT_ID')
+            client_id = os.getenv('AZURE_CLIENT_ID') or _safe_secret('AZURE_CLIENT_ID')
+            client_secret = os.getenv('AZURE_CLIENT_SECRET') or _safe_secret('AZURE_CLIENT_SECRET')
+            tenant_id = os.getenv('AZURE_TENANT_ID') or _safe_secret('AZURE_TENANT_ID')
             
             if client_id and client_secret and tenant_id:
                 logger.info("Using service principal authentication for cloud deployment")
@@ -87,7 +98,7 @@ class AzureAIFoundryAgent:
                     raise
             
             # If no service principal, try DefaultAzureCredential for local development
-            logger.info("Trying DefaultAzureCredential for local development")
+            logger.info("Trying DefaultAzureCredential (managed identity/local dev)")
             from azure.identity import DefaultAzureCredential, InteractiveBrowserCredential
             credential = DefaultAzureCredential()
             
@@ -110,7 +121,7 @@ class AzureAIFoundryAgent:
                     except Exception as ie:
                         logger.error(f"InteractiveBrowserCredential also failed: {ie}")
                 else:
-                    logger.error("Running in cloud environment but no service principal configured")
+                    logger.error("Running in cloud environment but no service principal configured; will rely on Managed Identity if available")
                     
                 raise e  # Raise the original DefaultAzureCredential error
                 
@@ -273,10 +284,10 @@ def get_config() -> Dict[str, str]:
     config["endpoint"] = os.getenv("AZURE_AI_FOUNDRY_ENDPOINT")
     config["agent_id"] = os.getenv("AZURE_AI_FOUNDRY_AGENT_ID")
     
-    # Fallback to Streamlit secrets
-    if not config["endpoint"] and hasattr(st, 'secrets'):
-        config["endpoint"] = st.secrets.get("AZURE_AI_FOUNDRY_ENDPOINT")
-        config["agent_id"] = st.secrets.get("AZURE_AI_FOUNDRY_AGENT_ID")
+    # Fallback to Streamlit secrets (safe access)
+    if not config["endpoint"]:
+        config["endpoint"] = _safe_secret("AZURE_AI_FOUNDRY_ENDPOINT")
+        config["agent_id"] = _safe_secret("AZURE_AI_FOUNDRY_AGENT_ID")
     
     # Fallback to hardcoded values (for development only)
     if not config["endpoint"]:

@@ -39,7 +39,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The address to search for (e.g., '1600 Amphitheatre Parkway, Mountain View, CA')"
+            "description": "The address to search for"
           },
           {
             "name": "limit",
@@ -49,16 +49,7 @@
               "type": "integer",
               "default": 10
             },
-            "description": "Maximum number of responses that will be returned"
-          },
-          {
-            "name": "countrySet",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "Comma separated list of country codes (e.g., 'US,CA')"
+            "description": "Maximum number of responses"
           }
         ],
         "responses": {
@@ -82,27 +73,17 @@
                       "items": {
                         "type": "object",
                         "properties": {
-                          "type": { "type": "string" },
-                          "id": { "type": "string" },
-                          "score": { "type": "number" },
-                          "address": {
-                            "type": "object",
-                            "properties": {
-                              "streetNumber": { "type": "string" },
-                              "streetName": { "type": "string" },
-                              "municipality": { "type": "string" },
-                              "countrySubdivision": { "type": "string" },
-                              "countryCode": { "type": "string" },
-                              "country": { "type": "string" },
-                              "postalCode": { "type": "string" },
-                              "freeformAddress": { "type": "string" }
-                            }
-                          },
                           "position": {
                             "type": "object",
                             "properties": {
                               "lat": { "type": "number" },
                               "lon": { "type": "number" }
+                            }
+                          },
+                          "address": {
+                            "type": "object",
+                            "properties": {
+                              "freeformAddress": { "type": "string" }
                             }
                           }
                         }
@@ -139,7 +120,7 @@
             "schema": {
               "type": "string"
             },
-            "description": "The coordinates through which the route is calculated, delimited by a colon (e.g., '52.50931,13.42936:52.50274,13.43872'). Format: 'originLat,originLon:destinationLat,destinationLon'"
+            "description": "Route coordinates: 'originLat,originLon:destinationLat,destinationLon'"
           },
           {
             "name": "routeType",
@@ -147,10 +128,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["fastest", "shortest", "eco", "thrilling"],
+              "enum": ["fastest", "shortest", "eco"],
               "default": "fastest"
             },
-            "description": "The type of route requested"
+            "description": "Type of route"
           },
           {
             "name": "travelMode",
@@ -158,30 +139,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["car", "truck", "taxi", "bus", "van", "motorcycle", "bicycle", "pedestrian"],
+              "enum": ["car", "truck", "bicycle", "pedestrian"],
               "default": "car"
             },
-            "description": "The mode of travel for the requested route"
-          },
-          {
-            "name": "avoid",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "enum": ["tollRoads", "motorways", "ferries", "unpavedRoads", "carpools", "alreadyUsedRoads", "borderCrossings"]
-            },
-            "description": "Specifies something that the route calculation should try to avoid"
-          },
-          {
-            "name": "traffic",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": true
-            },
-            "description": "Consider all available traffic information during routing"
+            "description": "Travel mode"
           }
         ],
         "responses": {
@@ -202,35 +163,7 @@
                             "type": "object",
                             "properties": {
                               "lengthInMeters": { "type": "integer" },
-                              "travelTimeInSeconds": { "type": "integer" },
-                              "trafficDelayInSeconds": { "type": "integer" },
-                              "departureTime": { "type": "string", "format": "date-time" },
-                              "arrivalTime": { "type": "string", "format": "date-time" }
-                            }
-                          },
-                          "legs": {
-                            "type": "array",
-                            "items": {
-                              "type": "object",
-                              "properties": {
-                                "summary": {
-                                  "type": "object",
-                                  "properties": {
-                                    "lengthInMeters": { "type": "integer" },
-                                    "travelTimeInSeconds": { "type": "integer" }
-                                  }
-                                },
-                                "points": {
-                                  "type": "array",
-                                  "items": {
-                                    "type": "object",
-                                    "properties": {
-                                      "latitude": { "type": "number" },
-                                      "longitude": { "type": "number" }
-                                    }
-                                  }
-                                }
-                              }
+                              "travelTimeInSeconds": { "type": "integer" }
                             }
                           }
                         }
