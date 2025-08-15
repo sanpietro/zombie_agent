@@ -409,7 +409,7 @@ def main():
         margin-bottom: 0.75rem !important;
         background: linear-gradient(90deg,#ff5555,#ffaa00);
         -webkit-background-clip: text;
-        color: #ffdddd;
+        color: white;
         text-shadow: 0 0 6px rgba(255,120,120,0.35);
     }
     </style>
