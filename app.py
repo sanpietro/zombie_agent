@@ -502,7 +502,10 @@ def main():
     
     # Chat input section
     # Custom styled chat header (HTML to control font size & weight)
-    st.markdown('<h2 class="chat-header">💬 Chat with The Zombinator</h2>', unsafe_allow_html=True)
+    st.header('💬 Chat with The Zombinator')
+    st.write('🧟 Ask about ZNN (Zombie News Network) news stories')
+    st.write('🧟 Want answers from zombie hunters and behavioralists? Just ask!')
+    st.write('🧟 The Zombinator can also plot your evacuation route if zombies come-a-knockin!!')
     if prompt := st.chat_input("What would you like to ask The Zombinator?"):
         # Rate limiting check - prevent requests less than 2 seconds apart
         current_time = time.time()
