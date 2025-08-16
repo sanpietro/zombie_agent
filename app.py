@@ -175,7 +175,7 @@ class AzureAIFoundryAgent:
             logger.error(f"Error creating thread: {e}")
             raise
     
-    def send_message(self, thread_id: str, message: str, max_retries: int = 2) -> Dict:
+    def send_message(self, thread_id: str, message: str, max_retries: int = 1) -> Dict:
         """
         Send a message to the agent and get the response
         
@@ -187,8 +187,10 @@ class AzureAIFoundryAgent:
         Returns:
             Dict: Response containing success status and message/error
         """
-        # Add a small delay between requests to prevent rapid-fire API calls
-        time.sleep(0.5)  # Half-second delay before each request
+        # Only delay if this is a retry to prevent rapid-fire API calls
+        # Remove the blanket 0.5 second delay that was slowing every request
+        
+        logger.info(f"Sending message to thread {thread_id}: {message[:50]}...")
         
         for attempt in range(max_retries):
             try:
@@ -199,11 +201,51 @@ class AzureAIFoundryAgent:
                     content=message
                 )
                 
-                # Create and process the run
-                run = self.project_client.agents.runs.create_and_process(
-                    thread_id=thread_id,
-                    agent_id=self.agent.id
-                )
+                # Create run manually with very conservative polling for low TPM limits
+                logger.info(f"Starting run for thread {thread_id}")
+                start_time = time.time()
+                
+                try:
+                    # Create the run (don't use create_and_process due to aggressive internal polling)
+                    run = self.project_client.agents.runs.create(
+                        thread_id=thread_id,
+                        agent_id=self.agent.id
+                    )
+                    
+                    # Conservative polling: check only every 5 seconds to preserve TPM quota
+                    max_wait_time = 60  # Extended to 60 seconds due to slow polling
+                    poll_interval = 5   # Only check every 5 seconds to save tokens
+                    polls = 0
+                    
+                    while run.status in ["queued", "in_progress", "requires_action"]:
+                        current_time = time.time()
+                        if current_time - start_time > max_wait_time:
+                            logger.error(f"Run timed out after {max_wait_time} seconds")
+                            return {
+                                "success": False,
+                                "error": "timeout", 
+                                "user_message": "The Zombinator timed out. Please try again in a few minutes."
+                            }
+                        
+                        time.sleep(poll_interval)
+                        polls += 1
+                        
+                        # Get run status (this uses tokens but much less frequently)
+                        run = self.project_client.agents.runs.get(thread_id, run.id)
+                        logger.info(f"Poll {polls}: Run status = {run.status} (after {current_time - start_time:.1f}s)")
+                    
+                    processing_time = time.time() - start_time
+                    logger.info(f"Run completed in {processing_time:.2f} seconds after {polls} polls")
+                    
+                except Exception as e:
+                    processing_time = time.time() - start_time
+                    logger.error(f"Run failed after {processing_time:.2f} seconds: {e}")
+                    
+                    return {
+                        "success": False,
+                        "error": "service_error",
+                        "user_message": "The Zombinator encountered an error. Please try again in a few minutes."
+                    }
                 
                 # Check run status
                 if run.status == "failed":
@@ -261,13 +303,17 @@ class AzureAIFoundryAgent:
                 logger.warning(f"HTTP error on attempt {attempt + 1}: {e}")
                 if attempt == max_retries - 1:
                     return {"success": False, "error": f"HTTP error after {max_retries} attempts: {e}"}
-                time.sleep(min(2 ** attempt, 5))  # Exponential backoff with cap
+                # Only delay on retries, not on first attempt
+                if attempt > 0:
+                    time.sleep(min(2 ** (attempt - 1), 3))  # Reduced max delay from 5 to 3 seconds
                 
             except Exception as e:
                 logger.error(f"Unexpected error on attempt {attempt + 1}: {e}")
                 if attempt == max_retries - 1:
                     return {"success": False, "error": f"Unexpected error: {e}"}
-                time.sleep(min(2 ** attempt, 5))  # Exponential backoff with cap
+                # Only delay on retries, not on first attempt  
+                if attempt > 0:
+                    time.sleep(min(2 ** (attempt - 1), 3))  # Reduced max delay from 5 to 3 seconds
         
         return {"success": False, "error": "Max retries exceeded"}
 
@@ -510,7 +556,7 @@ def main():
         # Rate limiting check - prevent requests less than 2 seconds apart
         current_time = time.time()
         time_since_last = current_time - st.session_state.last_request_time
-        min_interval = 2.0  # Minimum 2 seconds between requests
+        min_interval = 1.0  # Reduced from 2.0 to 1.0 seconds between requests
         
         if time_since_last < min_interval:
             remaining_wait = min_interval - time_since_last
